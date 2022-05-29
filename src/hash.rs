@@ -2,7 +2,9 @@ use argon2::{
     password_hash::{rand_core::OsRng, PasswordHasher, SaltString},
     Argon2,
 };
+use base64ct::{Base64, Encoding};
 use digest::generic_array::ArrayLength;
+use digest::generic_array::GenericArray;
 use digest::Digest;
 use pbkdf2::{
     password_hash::{Ident as PbIdent, SaltString as PbSaltString},
@@ -12,7 +14,20 @@ use scrypt::{password_hash::SaltString as ScSaltString, Scrypt};
 use std::ops::Add;
 use std::{fs, io};
 
-pub fn hash_file<D>(file: String, mut hasher: D)
+fn print_hash<D>(param: &str, hash: GenericArray<u8, D>, b64: bool)
+where
+    D: ArrayLength<u8> + std::ops::Add,
+    <D as Add>::Output: ArrayLength<u8>,
+{
+    if b64 {
+        let base64_hash = Base64::encode_string(&hash);
+        println!("{} {}", base64_hash, param);
+    } else {
+        println!("{:x} {}", hash, param);
+    }
+}
+
+pub fn hash_file<D>(file: String, mut hasher: D, b64: bool)
 where
     D: Clone,
     D: Digest,
@@ -28,7 +43,8 @@ where
     if md.is_file() {
         let mut input = fs::File::open(&file).expect("Unable to open the provided file.");
         io::copy(&mut input, &mut hasher).expect("io error while reading from file.");
-        println!("{:x} {}", hasher.finalize(), &file);
+        let hash = hasher.finalize();
+        print_hash(&file, hash, b64);
     }
 
     if md.is_dir() {
@@ -38,11 +54,8 @@ where
             if path.is_file() {
                 let mut input = fs::File::open(&path).expect("Unable to open the provided file.");
                 io::copy(&mut input, &mut hashdir).expect("io error while reading from file.");
-                println!(
-                    "{:x} {}",
-                    &mut hashdir.finalize_reset(),
-                    path.to_str().unwrap()
-                );
+                let hash = hashdir.finalize_reset();
+                print_hash(path.to_str().unwrap(), hash, b64);
             }
         }
     }
@@ -91,12 +104,13 @@ pub fn hash_pbkdf2(password: String, pb_scheme: &str) {
     println!("{} {}", password_hash, password);
 }
 
-pub fn hash_string<D>(password: String, mut hasher: D)
+pub fn hash_string<D>(password: String, mut hasher: D, b64: bool)
 where
     D: Digest,
     D::OutputSize: Add,
     <D::OutputSize as Add>::Output: ArrayLength<u8>,
 {
     hasher.update(&password.as_bytes());
-    println!("{:x} {}", hasher.finalize(), &password);
+    let hash = hasher.finalize();
+    print_hash(&password, hash, b64);
 }

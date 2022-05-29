@@ -21,9 +21,10 @@ modes are
 - string
 - file
 
-After selecting the mode you will need to provide the -a switch for selecting a suitable hashing algorithm and a string
+After selecting the mode you will need to provide the `-a` switch for selecting a suitable hashing algorithm and a string
 or file to be hashed. The stdio mode allows you to pipe to the `rustgenhash` command. The tool will hash the passed
 lines from the stdio (useful for hashing password lists).
+By default, the hashes are displayed in hex, for base64 encoded format add `-b` or `--b64` argument. Note: hashes from `argon2`, `pbkdf2` and `scrypt` algorithms are displayed as is without hex or base64 conversion.
 
 The file mode supports hashing of multiple files in a directory and currently works non-recursive.
 
